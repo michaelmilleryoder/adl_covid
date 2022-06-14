@@ -68,11 +68,13 @@ class TweetFilter():
         if os.path.exists(outpath): # already processed
             return
 
-        tqdm.write(fname)
+        #tqdm.write(fname)
         with gzip.open(fpath, 'rb') as f:
             #for i, line in tqdm(enumerate(f), total=974483):
             # for i, line in tqdm(enumerate(f), total=974483, bar_format='selected: {postfix} | Elapsed: {elapsed} | {rate_fmt}', postfix=n_selected):
             for line in f:
+                if len(line) == 1:
+                    continue
                 try:
                     tweet = json.loads(line)
                 except json.decoder.JSONDecodeError:
@@ -99,11 +101,18 @@ class TweetFilter():
 
         # Load COVID Twitter data (Carley lab)
         # Older data
-        dirname = 'json_keyword_stream'
-        paths = [os.path.join(self.basepath, dirname, fname) for fname in sorted(os.listdir(os.path.join(self.basepath, dirname)))]
+        #dirname = 'json_keyword_stream'
+        #paths = [os.path.join(self.basepath, dirname, fname) for fname in sorted(os.listdir(os.path.join(self.basepath, dirname)))]
+        #with Pool(15) as p:
+        #    list(tqdm(p.imap(self.process_dump, paths), ncols=80, total=len(paths)))
+
+        # Newer data
+        dirname = 'json_keyword_stream_mike'
+        paths = [os.path.join(self.basepath, dirname, fname) for fname in sorted(os.listdir(os.path.join(self.basepath, dirname))) if fname.endswith('json.gz')]
         with Pool(15) as p:
             list(tqdm(p.imap(self.process_dump, paths), ncols=80, total=len(paths)))
-
+        #list(tqdm(map(self.process_dump, paths), ncols=80, total=len(paths)))
+    
         print(self.n_selected)
         #print(Counter([select['search_match'] for select in selected]).most_common())
 
