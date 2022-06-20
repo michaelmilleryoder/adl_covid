@@ -11,6 +11,7 @@ from collections import Counter
 import os
 import gzip
 import json
+import shutil
 
 from tqdm import tqdm
 import pandas as pd
@@ -53,11 +54,12 @@ def process_tweets(data):
 
 class TweetFilter():
 
-    def __init__(self):
+    def __init__(self, overwrite=False):
         self.terms_path = '../resources/antisemitic_terms.txt'
         self.basepath = '/storage3/coronavirus/'
         self.paths = None
         self.n_selected = 0
+        self.overwrite = overwrite
 
     def load_resources(self):
         with open(self.terms_path) as f:
@@ -98,7 +100,7 @@ class TweetFilter():
         """ Load tweets that have been filtered and saved already.
             Use if you want to do additional processing
         """
-        filtered_dirpath = os.path.join('../output', 'tweets_json_nol')
+        filtered_dirpath = os.path.join('../output', 'tweets_json')
         out_dirpath = os.path.join('../output', 'processed_tweets_csv')
         if not os.path.exists(out_dirpath):
             os.mkdir(out_dirpath)
@@ -118,7 +120,7 @@ class TweetFilter():
         selected = []
         fname = os.path.basename(fpath)
         outpath = os.path.join('../output', 'tweets_json', f'{fname.split(".")[0]}.jsonl')
-        csv_outpath = os.path.join('../output', 'tweets_csv', f'{fname.split(".")[0]}.csv')
+        csv_outpath = os.path.join('../output', 'tweets_json', f'{fname.split(".")[0]}.csv')
         if os.path.exists(outpath): # already processed
             return
 
@@ -147,30 +149,46 @@ class TweetFilter():
         with open(outpath, 'w') as f:
             f.write('\n'.join([json.dumps(tweet) for tweet in selected]))
         with open(csv_outpath, 'w') as f:
-            pd.json_normalize(selected).to_csv(csv_outpath)
+            df = pd.json_normalize(selected)
+            processed = process_tweets(df)
+            processed.to_csv(csv_outpath)
 
     def run(self):
-        #self.load_resources()
+        n_cores = 10
+
+        csv_dirpath = os.path.join('../output', 'tweets_csv')
+        json_dirpath = os.path.join('../output', 'tweets_json')
+        if self.overwrite:
+            if os.path.exists(csv_dirpath):
+                shutil.rmtree(csv_dirpath)
+            os.mkdir(csv_dirpath)
+        if not os.path.exists(json_dirpath):
+            os.mkdir(json_dirpath)
+
+        self.load_resources()
 
         # Load COVID Twitter data (Carley lab)
         # Older data
-        #dirname = 'json_keyword_stream'
-        #paths = [os.path.join(self.basepath, dirname, fname) for fname in sorted(os.listdir(os.path.join(self.basepath, dirname)))]
-        #with Pool(15) as p:
-        #    list(tqdm(p.imap(self.process_dump, paths), ncols=80, total=len(paths)))
+        print("Filtering older data...")
+        dirname = 'json_keyword_stream'
+        paths = [os.path.join(self.basepath, dirname, fname) for fname in sorted(os.listdir(os.path.join(self.basepath, dirname)))]
+        with Pool(n_cores) as p:
+            list(tqdm(p.imap(self.process_dump, paths), ncols=80, total=len(paths)))
+        #list(map(self.process_dump, paths)) # debugging
 
         # Newer data
-        #dirname = 'json_keyword_stream_mike'
-        #paths = [os.path.join(self.basepath, dirname, fname) for fname in sorted(os.listdir(os.path.join(self.basepath, dirname))) if fname.endswith('json.gz')]
-        #with Pool(15) as p:
-        #    list(tqdm(p.imap(self.process_dump, paths), ncols=80, total=len(paths)))
+        print("Filtering newer data...")
+        dirname = 'json_keyword_stream_mike'
+        paths = [os.path.join(self.basepath, dirname, fname) for fname in sorted(os.listdir(os.path.join(self.basepath, dirname))) if fname.endswith('json.gz')]
+        with Pool(n_cores) as p:
+            list(tqdm(p.imap(self.process_dump, paths), ncols=80, total=len(paths)))
         #list(tqdm(map(self.process_dump, paths), ncols=80, total=len(paths))) # debugging
 
-        self.load_process_tweets()
+        #self.load_process_tweets()
     
         #print(Counter([select['search_match'] for select in selected]).most_common())
 
 
 if __name__ == '__main__':
-    tweet_filter = TweetFilter()
+    tweet_filter = TweetFilter(overwrite=True)
     tweet_filter.run()
