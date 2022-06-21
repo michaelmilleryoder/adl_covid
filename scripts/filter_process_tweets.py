@@ -121,7 +121,7 @@ class TweetFilter():
         fname = os.path.basename(fpath)
         outpath = os.path.join('../output', 'tweets_json', f'{fname.split(".")[0]}.jsonl')
         csv_outpath = os.path.join('../output', 'tweets_json', f'{fname.split(".")[0]}.csv')
-        if os.path.exists(outpath): # already processed
+        if os.path.exists(outpath) and not self.overwrite: # already processed
             return
 
         #tqdm.write(fname)
@@ -150,11 +150,12 @@ class TweetFilter():
             f.write('\n'.join([json.dumps(tweet) for tweet in selected]))
         with open(csv_outpath, 'w') as f:
             df = pd.json_normalize(selected)
-            processed = process_tweets(df)
-            processed.to_csv(csv_outpath)
+            if 'text' in df.columns:
+                processed = process_tweets(df)
+                processed.to_csv(csv_outpath)
 
     def run(self):
-        n_cores = 10
+        n_cores = 15
 
         csv_dirpath = os.path.join('../output', 'tweets_csv')
         json_dirpath = os.path.join('../output', 'tweets_json')
