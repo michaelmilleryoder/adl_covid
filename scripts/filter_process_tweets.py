@@ -120,7 +120,7 @@ class TweetFilter():
         selected = []
         fname = os.path.basename(fpath)
         outpath = os.path.join('../output', 'tweets_json', f'{fname.split(".")[0]}.jsonl')
-        csv_outpath = os.path.join('../output', 'tweets_json', f'{fname.split(".")[0]}.csv')
+        csv_outpath = os.path.join('../output', 'tweets_csv', f'{fname.split(".")[0]}.csv')
         if os.path.exists(outpath) and not self.overwrite: # already processed
             return
 
