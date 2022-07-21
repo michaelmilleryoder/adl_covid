@@ -1,6 +1,8 @@
 """ 
 Load, filter, process COVID Twitter data
 By keywords and media attachments
+
+Saves out to a CSV and JSON file per each input tweet JSON dump
 """
 
 
